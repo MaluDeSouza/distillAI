@@ -1,0 +1,27 @@
+# Ambientes Virtuais
+.venv/
+venv/
+ENV/
+env/
+
+# Byte-compiled / Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Configurações Locais e Chaves (CRÍTICO)
+.env
+.env.local
+.env.*
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.swp
+
+# Banco de Dados Local / Logs
+*.log
+*.sqlite
+
+# arquivos temporarios
+temp/
