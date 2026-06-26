@@ -5,6 +5,7 @@ from src.core.config import get_settings
 # Importando as nossas novas rotas
 from src.routes.distiller_routes import router as distiller_router
 from src.routes.agent_routes import router as agent_router
+from src.routes.agent_management_routes import router as management_router
 
 settings = get_settings()
 
@@ -25,6 +26,7 @@ app.add_middleware(
 # Acoplando as rotas ao servidor principal
 app.include_router(distiller_router)
 app.include_router(agent_router)
+app.include_router(management_router)
 
 @app.get("/health", tags=["System"])
 async def health_check() -> dict[str, str]:
