@@ -23,3 +23,5 @@ if config.config_file_name is not None:
 
 # 3. Aponta para os metadados dos nossos modelos
 target_metadata = Base.metadata
+print(f"🔥 TABELAS RECONHECIDAS: {Base.metadata.tables.keys()}")
+print(f"🔌 BANCO ALVO: {settings.DATABASE_URL}")
