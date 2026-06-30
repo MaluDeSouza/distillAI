@@ -1,8 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status,Form
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status, Form
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
-from typing import Annotated
-
+from typing import Annotated, Any
+from pydantic import BaseModel, ValidationError
 
 from src.core.database import get_db
 from src.services.batch_service import BatchIngestionService
@@ -12,54 +11,57 @@ from src.models.agents import AgentModel
 
 router = APIRouter(prefix="/v1/agents", tags=["Gerenciamento de Agentes (Backoffice)"])
 
-@router.post("/optimize", response_model=AgentOptimizeResponse)
-async def optimize_agent_prompt(payload: AgentOptimizeRequest):
-    """
-    Recebe um rascunho de comportamento e devolve um System Prompt otimizado para salvar no banco.
-    """
-    service = PromptOptimizerService()
-    optimized = await service.optimize_draft(payload.draft_behavior)
-    
-    return AgentOptimizeResponse(optimized_prompt=optimized)
+# --- AQUI ESTÁ A MAGIA PARA ENGANAR O SWAGGER ---
+# Sobrescrevemos o comportamento do schema do Pydantic para forçar o botão de upload
+class SwaggerUploadFile(UploadFile):
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema: Any, handler: Any) -> dict[str, Any]:
+        return {"type": "string", "format": "binary"}
+
+class AgentCreatePayload(BaseModel):
+    nome: str
+    tipo: str = "Flash"
+    comportamento: str = ""
+    status_agente: str = "draft"
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_agent_with_knowledge(
-    # Utilizando Annotated, blindamos o OpenAPI para renderizar o Swagger perfeitamente
-    nome: Annotated[str, Form(...)],
-    tipo: Annotated[str, Form()] = "Flash",
-    comportamento: Annotated[str, Form()] = "",
-    status_agente: Annotated[str, Form()] = "draft",
-    files: Annotated[List[UploadFile], File(description="Anexe os manuais/históricos em .txt ou .csv")] = [],
+    payload: Annotated[str, Form(description="JSON string contendo metadados (nome, tipo, etc)")],
+    # Usamos a nossa classe customizada aqui!
+    files: Annotated[list[SwaggerUploadFile], File(description="Anexe os manuais em .txt")],
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Cria um agente recebendo os dados textuais + Arquivos (multipart/form-data) na mesma requisição.
+    Cria um agente recebendo um JSON estrito + múltiplos arquivos na mesma requisição.
     """
-    # 1. Instancia e salva o Agente principal no banco de dados
+    try:
+        dados_agente = AgentCreatePayload.model_validate_json(payload)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, 
+            detail=f"Erro de formatação no JSON do payload: {e.errors()}"
+        )
+
     novo_agente = AgentModel(
-        nome=nome,
-        tipo=tipo,
-        comportamento=comportamento,
-        status=status_agente
+        nome=dados_agente.nome,
+        tipo=dados_agente.tipo,
+        comportamento=dados_agente.comportamento,
+        status=dados_agente.status_agente
     )
+    
     db.add(novo_agente)
     await db.commit()
-    await db.refresh(novo_agente) # Pega o ID gerado pelo banco
+    await db.refresh(novo_agente)
     
-    agent_id = novo_agente.id
     resultado_conhecimento = None
 
-    # 2. Se o usuário anexou arquivos reais (ignorando envios vazios), processa o lote
-    if files and len(files) > 0 and files.filename:
+    # Validamos usando a lista normal de arquivos
+    if files and len(files) > 0 and files[0].filename:
         batch_service = BatchIngestionService(db)
-        resultado_conhecimento = await batch_service.process_batch(agent_id, files)
+        resultado_conhecimento = await batch_service.process_batch(novo_agente.id, files)
 
     return {
         "message": "Agente criado com sucesso",
-        "agent_id": agent_id,
+        "agent_id": novo_agente.id,
         "knowledge_processed": resultado_conhecimento
     }
-    
-@router.post("/teste")
-async def teste(file: UploadFile = File(...)):
-    return {"ok": True}
