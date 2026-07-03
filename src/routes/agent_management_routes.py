@@ -44,33 +44,39 @@ async def create_agent_with_knowledge(
 ):
     """
     Criação de agente com campos separados. 
-    O sistema otimiza o comportamento automaticamente antes de salvar.
+    O comportamento recebido já é a versão final escolhida no front-end.
     """
-   # 1. Otimização Automática do comportamento (Persona/System Prompt)
-    optimizer = PromptOptimizerService()
-    optimized_behavior = await optimizer.optimize_draft(comportamento)
-
-    # 2. Persistência no banco
+    # 1. Persistência no banco usando o comportamento exato que veio na requisição
     novo_agente = AgentModel(
         nome=nome,
         tipo=tipo,
-        comportamento=optimized_behavior, # Já vem refinado da IA
+        comportamento=comportamento, 
         status=status_agente
     )
     
     db.add(novo_agente)
     await db.commit()
-    await db.refresh(novo_agente)
-    
-    # 3. Processamento de conhecimento em batch
+    await db.refresh(novo_agente)    
+
+    # 2. Processamento de conhecimento em batch
     resultado_conhecimento = None
     if files and len(files) > 0 and files[0].filename:
         batch_service = BatchIngestionService(db)
-        resultado_conhecimento = await batch_service.process_batch(novo_agente.id, files)
+        resultado_bruto = await batch_service.process_batch(novo_agente.id, files)
+                
+        chunks_extraidos = resultado_bruto if isinstance(resultado_bruto, int) else 0
+                
+        if isinstance(resultado_bruto, dict):
+            chunks_extraidos = resultado_bruto.get("regras_salvas_com_sucesso", 0) 
+        else:
+            chunks_extraidos = 0
+        resultado_conhecimento = {
+            "chunks_saved": chunks_extraidos
+        }
 
     return {
-        "message": "Agente criado e otimizado com sucesso.",
+        "message": "Agente criado com sucesso.",
         "agent_id": novo_agente.id,
-        "optimized_prompt": optimized_behavior,
-        "knowledge_processed": resultado_conhecimento
+        "optimized_prompt": comportamento,
+        "knowledge_processed": resultado_conhecimento 
     }
