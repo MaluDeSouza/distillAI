@@ -211,11 +211,8 @@ elif st.session_state.page == "Chat":
     for msg in st.session_state.chat_history:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
-            # Se a mensagem for do assistente e tiver chunks, exibe no acordeão
-            if msg["role"] == "assistant" and "chunks" in msg:
-                with st.expander("🔍 Trechos Recuperados do RAG"):
-                    for i, chunk in enumerate(msg["chunks"]):
-                        st.write(f"**Chunk {i+1}:** {chunk}")
+           
+            
 
     # Input de nova mensagem
     user_input = st.chat_input("Digite sua dúvida (ex: 'Minha internet caiu')...")
@@ -228,10 +225,15 @@ elif st.session_state.page == "Chat":
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         
         # Prepara a chamada para o runtime
+        history_payload = [
+            {"role": msg["role"], "content": msg["content"]} 
+            for msg in st.session_state.chat_history[:-1]
+        ]
+
         payload = {
             "agent_id": st.session_state.agent_id,
             "message": user_input,
-            "history": [] # Historico opcional conforme seu schema
+            "history": history_payload 
         }
         
         with st.chat_message("assistant"):
@@ -242,19 +244,12 @@ elif st.session_state.page == "Chat":
                     if response.status_code == 200:
                         data = response.json()
                         reply = data.get("reply", "Resposta vazia do modelo.")
-                        # Simulando o recebimento de chunks (Atualize seu backend para retornar isso!)
-                        chunks = data.get("chunks", ["Aviso: O backend ainda não está retornando os chunks do RAG no modelo ChatResponse."])
-                        
                         st.markdown(reply)
-                        with st.expander("🔍 Trechos Recuperados do RAG [cite: 57, 58]"):
-                            for i, chunk in enumerate(chunks):
-                                st.write(f"**Chunk {i+1}:** {chunk}")
-                                
+                                                        
                         # Salva no histórico
                         st.session_state.chat_history.append({
                             "role": "assistant", 
                             "content": reply,
-                            "chunks": chunks
                         })
                     else:
                         st.error(f"Erro na API: {response.status_code}")
