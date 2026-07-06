@@ -2,7 +2,7 @@
 
 Plataforma inteligente para destilação de históricos de suporte e geração autônoma de agentes Nível 1 com lógica de transição humana (*handoff*).
 
-![Demonstração do Fluxo](img/gif.gif)
+![Demonstração do Fluxo](docs/img/gif.gif)
 
 ---
 
@@ -11,16 +11,16 @@ Empresas gastam tempo excessivo com suporte repetitivo, enquanto criar FAQs estr
 
 ## 🏗️ Funcionalidades em Desenvolvimento (Core Business)
 * **Knowledge Distiller Engine:** Ingestão de arquivos de log que converte conversas informais em esquemas estritos de árvores de decisão usando Pydantic.
-![Otimização de Prompt](img/escolha_persona_2.png)
+![Otimização de Prompt](docs/img/escolha_persona.png)
 
 * **Contextual Agent Factory:** Geração dinâmica de agentes de atendimento (via Agno Framework) que executam passos sequenciais antes do transbordo técnico.
-![Guardrails do Agente](img/painel_do_agente_3_2.png)
+![Guardrails do Agente](docs/img/cria_agente.png)
 
 * **Payload Handoff Mechanism:** Geração automática de resumos de contexto para operadores humanos, detalhando tudo o que a IA tentou antes de transferir o atendimento.
 
 ## 🔌 Documentação da API
 O ecossistema é suportado por uma API robusta, documentada automaticamente para facilitar integrações futuras.
-![Swagger da API](img/swagger.png)
+![Swagger da API](docs/img/swagger.png)
 
 ## 🛠️ Stack Tecnológico
 * Python 3.11+
@@ -30,6 +30,7 @@ O ecossistema é suportado por uma API robusta, documentada automaticamente para
 * PostgreSQL (`pgvector`)
 
 ---
+![Terminal](docs/img/terminal.png)
 
 ## 💻 Como Configurar o Ambiente Local
 
